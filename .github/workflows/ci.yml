@@ -1,0 +1,30 @@
+name: 构建并验证控制台 SDK
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew test installDist distZip
+      - name: 验证命令行与示例
+        run: |
+          sdk=build/install/rolithax-console-sdk/bin/rolithax-console-sdk
+          template="$RUNNER_TEMP/paper-panel"
+          "$sdk" init "$template"
+          "$sdk" validate "$template"
+          "$sdk" replay "$template" "$template/fixtures/logs.txt" "$template/fixtures/expected.json"
+          "$sdk" pack "$template" "$RUNNER_TEMP/paper-panel.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rolithax-console-sdk
+          path: build/distributions/*.zip
+          if-no-files-found: error
