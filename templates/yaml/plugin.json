@@ -1,0 +1,9 @@
+{
+  "id": "example.paper-panel",
+  "version": "1.0.0",
+  "sdkVersion": 2,
+  "server": "paper",
+  "engine": "yaml",
+  "name": "Paper 运行概览",
+  "description": "以日志驱动的 Paper 管理面板。"
+}

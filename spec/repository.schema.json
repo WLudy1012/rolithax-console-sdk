@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rolithax Schema repository README",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "plugins"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "plugins": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/plugin"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 524288
+    },
+    "file": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256",
+        "size"
+      ],
+      "properties": {
+        "path": {
+          "enum": [
+            "plugin.json",
+            "ui.xml",
+            "rules.yaml"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "size": {
+          "$ref": "#/$defs/size"
+        }
+      }
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "path",
+            "files"
+          ],
+          "properties": {
+            "type": {
+              "const": "files"
+            },
+            "path": {
+              "type": "string"
+            },
+            "files": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "$ref": "#/$defs/file"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "url",
+            "sha256",
+            "size"
+          ],
+          "properties": {
+            "type": {
+              "const": "package"
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^https://"
+            },
+            "sha256": {
+              "$ref": "#/$defs/digest"
+            },
+            "size": {
+              "$ref": "#/$defs/size"
+            }
+          }
+        }
+      ]
+    },
+    "plugin": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "name",
+        "description",
+        "engine",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "yaml",
+            "lua"
+          ]
+        },
+        "readme": {
+          "type": "string"
+        },
+        "compatibility": {
+          "type": "object"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "const": "lua"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "properties": {
+                  "type": {
+                    "const": "package"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

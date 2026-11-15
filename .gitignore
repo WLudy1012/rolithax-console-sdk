@@ -1,5 +1,6 @@
-/.gradle/
-/.kotlin/
-/.idea/
-/build/
-/out/
+.gradle/
+.kotlin/
+build/
+__pycache__/
+*.pyc
+.rolithax-runtime/

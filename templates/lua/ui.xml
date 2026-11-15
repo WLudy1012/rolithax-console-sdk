@@ -1,0 +1,7 @@
+<panel title="Lua 状态面板">
+  <section id="status" label="运行状态">
+    <badge id="state-badge" label="服务端" field="lifecycle" tone="primary"/>
+    <text id="last-line" label="最近一条日志" field="last"/>
+    <button id="query" label="查询玩家" action="refresh"/>
+  </section>
+</panel>

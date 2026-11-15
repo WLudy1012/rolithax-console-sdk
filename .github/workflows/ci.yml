@@ -1,30 +1,55 @@
-name: 构建并验证控制台 SDK
+name: Build and verify Rolithax Schema SDK
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
+concurrency:
+  group: schema-sdk-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@v7
         with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew test installDist distZip
-      - name: 验证命令行与示例
+          repository: ${{ vars.ROLITHAX_RUNTIME_REPOSITORY || 'WLudy1012/RolithaxLauncher' }}
+          ref: ${{ vars.ROLITHAX_RUNTIME_REF || 'dev' }}
+          path: .rolithax-runtime
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Build shared native runtime
         run: |
-          sdk=build/install/rolithax-console-sdk/bin/rolithax-console-sdk
-          template="$RUNNER_TEMP/paper-panel"
-          "$sdk" init "$template"
-          "$sdk" validate "$template"
-          "$sdk" replay "$template" "$template/fixtures/logs.txt" "$template/fixtures/expected.json"
-          "$sdk" pack "$template" "$RUNNER_TEMP/paper-panel.zip"
+          cmake -S .rolithax-runtime/native/schema -B build/native -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build/native --config Release --parallel
+          ctest --test-dir build/native -C Release --output-on-failure
+      - name: Resolve native CLI
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          name = "rolithax-schema.exe" if os.name == "nt" else "rolithax-schema"
+          binary = next(path for path in Path("build/native").rglob(name) if path.is_file()).resolve()
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"ROLITHAX_SCHEMA_CLI={binary}\n")
+              env.write(f"ROLITHAX_NATIVE_DIR={binary.parent}\n")
+      - name: Validate wrapper and both native engines
+        run: python -m unittest discover -s tests -v
+      - name: Bundle SDK
+        shell: python
+        run: |
+          import os
+          import subprocess
+          subprocess.run(["python", "tools/bundle_sdk.py", os.environ["ROLITHAX_NATIVE_DIR"], "rolithax-schema-sdk.zip"], check=True)
       - uses: actions/upload-artifact@v7
         with:
-          name: rolithax-console-sdk
-          path: build/distributions/*.zip
+          name: rolithax-schema-sdk-${{ runner.os }}
+          path: rolithax-schema-sdk.zip
           if-no-files-found: error

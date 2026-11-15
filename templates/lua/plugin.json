@@ -1,0 +1,9 @@
+{
+  "id": "example.lua-panel",
+  "version": "1.0.0",
+  "sdkVersion": 2,
+  "server": "paper",
+  "engine": "lua",
+  "name": "Lua 状态面板",
+  "description": "以受限 Lua 处理日志的最小示例。"
+}
