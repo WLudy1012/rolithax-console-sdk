@@ -10,8 +10,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - { runner: ubuntu-24.04, target: linux-x64 }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64 }
+          - { runner: windows-2025, target: windows-x64 }
+          - { runner: macos-15-intel, target: macos-x64 }
+          - { runner: macos-15, target: macos-arm64 }
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -19,7 +24,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: ${{ vars.ROLITHAX_RUNTIME_REPOSITORY || 'WLudy1012/RolithaxLauncher' }}
-          ref: ${{ vars.ROLITHAX_RUNTIME_REF || 'dev' }}
+          ref: ${{ vars.ROLITHAX_RUNTIME_REF || 'dbc90e4d91704cd66d75d8046957e045fd17673d' }}
           path: .rolithax-runtime
           persist-credentials: false
       - uses: actions/setup-python@v6
@@ -42,6 +47,8 @@ jobs:
               env.write(f"ROLITHAX_NATIVE_DIR={binary.parent}\n")
       - name: Validate wrapper and both native engines
         run: python -m unittest discover -s tests -v
+      - name: Check bundled native protocol
+        run: python rolithax_schema_sdk.py doctor
       - name: Bundle SDK
         shell: python
         run: |
@@ -50,6 +57,6 @@ jobs:
           subprocess.run(["python", "tools/bundle_sdk.py", os.environ["ROLITHAX_NATIVE_DIR"], "rolithax-schema-sdk.zip"], check=True)
       - uses: actions/upload-artifact@v7
         with:
-          name: rolithax-schema-sdk-${{ runner.os }}
+          name: rolithax-schema-sdk-${{ matrix.target }}
           path: rolithax-schema-sdk.zip
           if-no-files-found: error

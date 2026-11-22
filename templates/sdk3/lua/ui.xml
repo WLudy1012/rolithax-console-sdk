@@ -1,0 +1,17 @@
+<panel title="Lua 状态面板">
+  <tabs id="views" label="面板">
+    <tab id="status-panel" label="概览">
+  <section id="status" label="运行状态">
+    <badge id="state-badge" label="服务端" field="lifecycle" tone="primary"/>
+    <text id="last-line" label="最近一条日志" field="last"/>
+    <button id="query" label="查询玩家" action="refresh"/>
+  </section>
+    </tab>
+    <tab id="help-panel" label="说明">
+      <expander id="intro" label="关于这个面板">
+        <image id="preview-icon" label="Schema 示例图标" asset="panel-icon"/>
+        <text id="intro-text" label="面板内容随实例日志更新。"/>
+      </expander>
+    </tab>
+  </tabs>
+</panel>

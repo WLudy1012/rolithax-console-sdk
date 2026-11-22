@@ -62,4 +62,14 @@ URL 要求 HTTPS，不带凭据，重定向也保持 HTTPS。下载摘要和字�
 
 摘要证明下载内容与选中的 Git commit 一致，不证明仓库作者可信。宿主仍独立管理来源信任、实例安装和逐动作授权。首次安装及更新都显示来源、插件版本与命令清单；授权不得由新版本扩张。
 
-SDK 的 fetch 当前支持 GitHub HTTPS 仓库及 raw.githubusercontent.com 的固定 commit README 地址。其他 Git 托管服务可以提供等价的固定提交读取适配器；不要把任意网页地址当成原始文件。
+`fetch` 支持 GitHub、GitLab 仓库及自托管 HTTPS `README.md` 地址。GitHub 和 GitLab 仓库先解析为不可变 commit。自托管地址可以直接提供目录，下载内容仍按声明的摘要和大小核验。
+
+## V2 源目录
+
+SDK 3 读取 `rolithax-schema-repository-v2` 围栏，内部使用 `schemaVersion: 2`。同一 README 可保留一个旧围栏用于 SDK 1、2 客户端，新客户端优先读取 V2。README 总计仍限 256 KiB。
+
+V2 源提供 `id`、`name`、`description`、`authors`、`homepage`、`icon` 和 `plugins`。每个插件增加 `sdkVersion`、`authors`、`license`、`homepage` 与 `icon`，并沿用 id、名称、版本、说明、引擎和下载方式。`icon` 为图片描述，包含 `mediaType`、`size`、`sha256` 和仓库相对 `path` 或 HTTPS `url`。SDK 3 插件的目录资料与 `plugin.json` 一致，目录图标与清单的图标资产使用相同摘要、大小和媒体类型。
+
+SDK 3 的 YAML `files` 清单包括三个定义文件和所有包内 `assets/` 文件。ZIP 与 `files` 两种方式都会一次下载完整插件。Lua 继续使用 `package`。外链资源在安装时按清单下载、校验并缓存。安装结束后，用户另行选择实例和授权动作。
+
+旧 SDK 1、2 插件可放进 V2 目录以显示图标和作者，原包格式保持不变。更新本地图标或包内文件后运行 `source-index ROOT`。同一 README 有两个版本时，命令更新 V2 围栏，旧围栏保留给仍在使用的旧包。自定义源的下载与校验不会运行仓库内的脚本。

@@ -1,6 +1,8 @@
-# Rolithax Schema 2 插件格式
+# Rolithax Schema 插件格式
 
 原生实现与 C ABI 定义在 Launcher 的 `native/schema`。此 SDK 的 validate/replay 调用同一程序；以下格式不由 Python 重新解释。
+
+本页前半部分是 SDK 1、2 的格式。SDK 3 延续这些定义，并在文末列出新增字段、控件和回调。
 
 ## plugin.json
 
@@ -132,3 +134,50 @@ return {
 响应为 `{"ok":true,"data":...}` 或 `{"ok":false,"error":{"file":"ui.xml","line":2,"message":"..."}}`。操作包括 inspect、reload、log、snapshot、command、reset、gap、restore。
 
 reload 会在候选包校验和日志回放完成后替换当前包；失败保留当前有效面板。packageRevision 变化使旧操作确认失效；command 需同时匹配 actionId、arguments、授权列表及 expectedRevision。断流由 gap 标记为 stale，UI 必须显示数据可能过期。安装包或 README 不能自行授予动作权限。
+
+## SDK 3 元数据和媒体
+
+将 `sdkVersion` 设置为 `3`。`name`、`description`、`authors`、`license`、HTTPS `homepage` 和 `icon` 为必填字段，`icon` 指向 `assets` 中的图片 ID。`compatibility` 可继续记录版本和日志语言。
+
+`assets` 的每个条目包含 `id`、`mediaType`、`size` 和 `sha256`，再声明 `path` 或 `url`。包内文件放在 `assets/`，外链使用无凭据的 HTTPS。图片支持 PNG、JPEG、WebP，单项最多 8 MiB。视频支持 MP4，单项最多 64 MiB。完整 ZIP 及媒体下载合计最多 128 MiB。宿主逐项校验后才安装，视频由用户主动播放。
+
+```xml
+<panel title="实例面板">
+  <tabs id="views" label="功能">
+    <tab id="overview" label="概览">
+      <image id="logo" label="插件图标" asset="panel-icon"/>
+      <expander id="manual" label="使用说明">
+        <video id="preview" label="操作视频" asset="preview-clip"/>
+      </expander>
+    </tab>
+    <tab id="settings" label="参数">
+      <toggle id="enabled" label="启用" field="enabled"/>
+      <select id="world" label="世界" field="world">
+        <option id="overworld" label="主世界" value="world"/>
+      </select>
+    </tab>
+  </tabs>
+</panel>
+```
+
+`toggle` 和 `select` 都给命令提供输入。前者只能返回 `true` 或 `false`，可以使用 `boolean` 输入验证器。后者只接受自身声明的 `option.value`。`image` 与 `video` 只引用静态资产 ID，`label` 同时提供无障碍说明。
+
+## SDK 3 动作和版本预检
+
+`plugin.json` 用 `actions` 保存命名动作。`button.action` 可引用 `actions` 或原有 `commands`，同一个 ID 只能声明一次。
+
+```json
+{
+  "actions": {
+    "inspect-config": {"kind":"file","operation":"list","root":"mcdr-config"},
+    "diagnostics": {"kind":"host-task","taskId":"server-status"}
+  },
+  "preflight": [{"kind":"mcdrPlugin","id":"example_plugin","version":"2.1.0"}]
+}
+```
+
+文件动作支持 `list`、`read`、`write`、`upload`、`download`、`rename`、`delete`、`mkdir`。`root` 为 `instance`、`mcdr-config`、`mcdr-plugins` 或 `minecraft`，可选 `path` 是该目录内的相对路径。用户输入的文件内容和目的地由 Launcher 收集。宿主任务只声明 Daemon 管理员配置的任务 ID。两种动作都需要用户在目标实例上授权并逐次确认。
+
+`preflight.kind` 可为 `mod`、`minecraftPlugin` 或 `mcdrPlugin`。启用插件前，Launcher 用当前实例查询该 ID 并比较完整版本字符串。找不到、无法确认或版本不符时，面板应写明原因。预检结果不会发送命令或修改文件。
+
+Lua 保留 `on_log(line, state)`。可选 `on_preflight(result, state)` 和 `on_action(result, state)` 接收宿主返回的有界 JSON 对象，按原有规则更新已声明字段。回调共用当前沙箱的工作量、时间和内存限制。解析器的 `event` 请求要求 `eventType`、`result` 和当前 `expectedRevision`，不会接受过期的事件。参见 Launcher 原生接口规范中 `prepareAction` 和 `event` 的定义。

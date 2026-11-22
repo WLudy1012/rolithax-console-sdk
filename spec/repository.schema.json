@@ -1,36 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Rolithax Schema repository README",
-  "type": "object",
-  "required": [
-    "schemaVersion",
-    "id",
-    "name",
-    "plugins"
-  ],
-  "properties": {
-    "schemaVersion": {
-      "const": 1
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
-    },
-    "name": {
-      "type": "string",
-      "minLength": 1
-    },
-    "description": {
-      "type": "string"
-    },
-    "plugins": {
-      "type": "array",
-      "maxItems": 256,
-      "items": {
-        "$ref": "#/$defs/plugin"
-      }
-    }
-  },
+  "title": "Rolithax Schema repository catalogs",
   "$defs": {
     "digest": {
       "type": "string",
@@ -177,6 +147,345 @@
           }
         }
       ]
+    },
+    "iconV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mediaType",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "mediaType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8388608
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "path"
+          ],
+          "not": {
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "required": [
+            "url"
+          ],
+          "not": {
+            "required": [
+              "path"
+            ]
+          }
+        }
+      ]
+    },
+    "assetFileV2": {
+      "type": "object",
+      "required": [
+        "path",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sourceV2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "path",
+            "files"
+          ],
+          "properties": {
+            "type": {
+              "const": "files"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "files": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 67,
+              "items": {
+                "$ref": "#/$defs/assetFileV2"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "url",
+            "size",
+            "sha256"
+          ],
+          "properties": {
+            "type": {
+              "const": "package"
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https://"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 134217728
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "pluginV2": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "sdkVersion",
+        "engine",
+        "source",
+        "license",
+        "name",
+        "description",
+        "authors",
+        "homepage",
+        "icon"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "authors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "homepage": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://"
+        },
+        "icon": {
+          "$ref": "#/$defs/iconV2"
+        },
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sdkVersion": {
+          "enum": [
+            1,
+            2,
+            3
+          ]
+        },
+        "engine": {
+          "enum": [
+            "yaml",
+            "lua"
+          ]
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "source": {
+          "$ref": "#/$defs/sourceV2"
+        },
+        "compatibility": {
+          "type": "object"
+        },
+        "readme": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "const": "lua"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "properties": {
+                  "type": {
+                    "const": "package"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "catalogV2": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "id",
+        "plugins",
+        "name",
+        "description",
+        "authors",
+        "homepage",
+        "icon"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "authors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "homepage": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://"
+        },
+        "icon": {
+          "$ref": "#/$defs/iconV2"
+        },
+        "schemaVersion": {
+          "const": 2
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "plugins": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/pluginV2"
+          }
+        }
+      }
     }
-  }
+  },
+  "oneOf": [
+    {
+      "title": "Rolithax Schema repository README",
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "id",
+        "name",
+        "plugins"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "plugins": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/plugin"
+          }
+        }
+      }
+    },
+    {
+      "$ref": "#/$defs/catalogV2"
+    }
+  ]
 }
